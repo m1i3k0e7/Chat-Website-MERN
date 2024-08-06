@@ -5,9 +5,12 @@ import Alert from '@material-ui/lab/Alert';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import IconButton from "@material-ui/core/IconButton";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { useNavigation } from "react-router-dom";
+import { UserContext } from "./contexts/UserContext";
+import axios from "axios";
 
+const Chat = require('../api/models/Chat');
 
 const useStyles = makeStyles((theme) => ({
     container: {
@@ -64,31 +67,61 @@ const accordionStyles = {
 };
 const CustomAccordion = withStyles(accordionStyles)(Accordion);
 
-function getNowTime() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    const formattedTime = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    const hourTime = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
-    return [formattedTime, hourTime];
+async function createNewGroup(groupName, setEmpty, setErrorMessage, setOpen, username, uid) {
+    try {
+        await axios.post('/createChat', {
+            isGroupChat: true,
+            chatName: groupName,
+            users: [uid],
+            lastText: username + " created the group",
+            time: new Date(),
+        });
+        setOpen(false)
+    } catch (e) {
+        setEmpty(true);
+        setErrorMessage(e);
+    }
 }
 
-const Contacts = ({contactInfo, groupsList, username, setGroupsList, setContactInfo, friendsList, setFriendsList}) => {
+const Contacts = ({contactInfo, groupsList, setGroupsList, setContactInfo, friendsList, setFriendsList}) => {
     const classes = useStyles();
     const [open, setOpen] = useState(false);
     const [groupName, setGroupName] = useState("");
     const [empty, setEmpty] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const [uid, setUid] = useState("");
-    
+    const {user} = useContext(UserContext);
+
+    useEffect(() => {
+        const {_id} = user;
+        axios.post("/contacts", {
+            _id,
+        }).then(({data}) => {
+            var glist = [], flist = []
+            for (const chat of data.contacts) {
+                if (chat.isGroupChat) {
+                    glist.push([chat.lastTextTime, chat.chatName, chat._id, chat.lastText]);
+                } else {
+                    flist.push([chat.lastTextTime, chat.chatName, chat._id, chat.lastText]);
+                }
+            }
+            glist.sort();
+            flist.sort();
+            setGroupsList(glist)
+            setFriendsList(flist);
+            if (flist.length > 0) {
+                setContactInfo([flist[0][1], flist[0][2]]);
+            } else if (glist.length > 0) {
+                setContactInfo([glist[0][1], glist[0][2]]);
+            }
+        }).catch(e => {
+            console.log(e);
+        });
+    }, []);
+
     return (
         <div className={classes.container}>
         <Typography variant="h3" className={classes.text}>
-                    Contact
+                    Contacts
                     <IconButton className={classes.icon} onClick={() => {setOpen(true)}}>
                         <AddCircleOutlineIcon 
                             style={{fontSize:"35px"}}>
@@ -167,8 +200,10 @@ const Contacts = ({contactInfo, groupsList, username, setGroupsList, setContactI
             <Button onClick={() => {setOpen(false);}} style={{color: "black"}}>
                 Cancel
             </Button>
-            <Button onClick={() => {
-                                    
+            <Button onClick={() => {    
+                                        if (groupName !== "") {
+                                            createNewGroup(groupName, setEmpty, setErrorMessage, setOpen, user.username, user._id);
+                                        }
                                         setGroupName("");
                                     }} style={{color: "black"}}
             >
