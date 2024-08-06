@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
+const Chat = require("./models/Chat");
+const Message = require("./models/Message");
 const cookieParser = require("cookie-parser");
 const { NormalModule } = require("webpack");
 require("dotenv").config();
@@ -25,10 +27,9 @@ app.post('/apis/register', async (req, res) => {
         const userDoc = await User.create({
             username,
             email, 
-            bio: "",
+            biography: "Hello, I am " + username,
             password: bcrypt.hashSync(password, bcryptSalt),
-            groups: {},
-            friends: {},
+            contacts: [],
         });
         res.status(200).json(userDoc)
     } catch (e) {
@@ -66,11 +67,51 @@ app.get('/apis/profile', (req, res) => {
     if (token) {
         jwt.verify(token, jwtSecret, {}, async (err, user) => {
             if (err) throw err;
-            const userDoc = await User.findById(user.id);
-            res.json(userDoc);
+            const {username, _id, email} = await User.findById(user.id);
+            res.json({username, _id, email});
         });
     } else {
         res.json(null);
+    }
+});
+
+app.post('/apis/contacts', async (req, res) => {
+    const {_id} = req.body;
+    const user = await User.findById(_id).populate('contacts', 'isGroupChat _id chatName lastText lastTextTime').exec();
+    const contacts = user.contacts
+    res.json({contacts});
+});
+
+app.post('/apis/createChat', async (req, res) => {
+    const {chatName, isGroupChat, users, lastText, time} = req.body;
+    const chat = new Chat({
+        isGroupChat,
+        chatName,
+        users,
+        messages: [],
+        lastText,
+        lastTextTime: time,
+    });
+    try {
+        const savedChat = await chat.save();
+        const message = new Message({
+            sender: users[0],
+            content: lastText,
+            time: time,
+            chat: savedChat._id, // new chat's id as ref
+        });
+        const savedMessage = await message.save();
+        await Chat.findByIdAndUpdate(savedChat._id, {
+            $push: {messages: savedMessage._id}
+        });
+        for (user of users) {
+            await User.findByIdAndUpdate(user, {
+                $push: {contacts: savedChat._id}
+            });
+        }
+        res.status(200);
+    } catch (e) {
+        res.status(422).json(e);
     }
 });
 
