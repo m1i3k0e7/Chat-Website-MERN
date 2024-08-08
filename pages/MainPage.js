@@ -32,9 +32,9 @@ const MainPage = () => {
     const classes = useStyles();
     const {ready, user} = useContext(UserContext);
 
-    if (ready && user === null) {
-        return <Navigate to="/" replace={true}/>;
-    }
+    // if (ready && user === null) {
+    //     return <Navigate to="/" replace={true}/>;
+    // }
 
     if (!ready) {
         return "Loading...";

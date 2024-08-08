@@ -1,10 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import ChatItem from "./ChatItem";
 import { makeStyles, TextField, Typography, Paper, Grid } from "@material-ui/core";
 import IconButton from "@material-ui/core/IconButton";
 import SearchIcon from '@material-ui/icons/Search';
 import SendIcon from '@material-ui/icons/Send';
 import SearchChat from "./SearchChat";
+import axios from "axios";
+import { UserContext } from "./contexts/UserContext";
+import { io } from "socket.io-client";
+
+
+const socket = io('http://localhost:3000');
 
 const useStyles = makeStyles((theme) => ({
     container: {
@@ -55,6 +61,19 @@ function calTimeDiff(time1, time2) {
     return diffInSec >= 180;
 }
 
+async function sendMessage(content, chat, sender) {
+    try {
+        await axios.post('/sendMessage', {
+            sender,
+            chat,
+            content,
+            time: new Date(),
+        });
+    } catch (e) {
+        console.log(e);
+    }
+} 
+
 const Chat = ({contactInfo, setGroupsList, groupsList, setFriendsList}) => {
     const classes = useStyles();
     const [message, setMessage] = useState("");
@@ -64,7 +83,35 @@ const Chat = ({contactInfo, setGroupsList, groupsList, setFriendsList}) => {
     const groupRef = useRef(); 
     const scrollRef = useRef(null);
     const addedIds = useRef(new Map());
-    
+    const {user} = useContext(UserContext);
+
+    useEffect(() => {
+        console.log('WebSocket connection established');
+        if (contactInfo.length != 0) {
+            addedIds.current = new Map();
+            axios.post('/chat', {
+                contactInfo
+            }).then(({data}) => {
+                var messages = []
+                for (const msg of data.contents.messages) {
+                    messages.push([msg.time, msg.isNotif ? 1 : msg.sender._id, msg.content, msg.sender.username]);
+                }
+                setChatList(messages);
+            })
+
+            socket.emit('joinGroup', contactInfo[1]);
+            socket.on('newMessage', (msg) => {
+                const newMessage = [msg.time, msg.isNotif ? 1 : msg.sender._id, msg.content, msg.sender.username];
+                setChatList(prev => [...prev, newMessage]);
+            });
+
+            return () => {
+                socket.off('newMessage');
+                socket.emit('leaveGroup', contactInfo[1]);
+            };
+        }
+    }, [contactInfo]);
+
     return (
         <div className={classes.container}>
             <Typography variant="h3" className={classes.text}>
@@ -78,11 +125,12 @@ const Chat = ({contactInfo, setGroupsList, groupsList, setFriendsList}) => {
             {isSearch ? <SearchChat chatList={chatList}></SearchChat> : <div></div>}
             <Paper elevation={5}>
                 <Grid className={classes.groupItemContainer} ref={scrollRef}>
-                    {chatList.map(([time, type, content], index) => {
+                    {chatList.map(([time, sender, content, senderName], index) => {
                         return (<ChatItem key={index} 
                                           time={time} 
-                                          type={type} 
-                                          self={type===uid} 
+                                          sender={sender}
+                                          senderName={senderName} 
+                                          self={sender===user._id} 
                                           content={content} 
                                           showName={(index !== 0 && (chatList[index][1] !== chatList[index - 1][1] && chatList[index][1] !== 1))}
                                           showTime={(index === 0 || calTimeDiff(chatList[index][0], chatList[index - 1][0]))}>
@@ -105,7 +153,7 @@ const Chat = ({contactInfo, setGroupsList, groupsList, setFriendsList}) => {
                     />
                     <IconButton className={classes.icon} onClick={() => {
                         if(message !== '') {
-                            
+                            sendMessage(message, contactInfo[1], user._id);
                             setMessage("");
                         }
                     }}>

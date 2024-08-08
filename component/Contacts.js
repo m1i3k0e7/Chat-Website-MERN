@@ -99,9 +99,9 @@ const Contacts = ({contactInfo, groupsList, setGroupsList, setContactInfo, frien
             var glist = [], flist = []
             for (const chat of data.contacts) {
                 if (chat.isGroupChat) {
-                    glist.push([chat.lastTextTime, chat.chatName, chat._id, chat.lastText]);
+                    glist.push([chat.chatName, chat.lastTextTime, chat._id, chat.lastText]);
                 } else {
-                    flist.push([chat.lastTextTime, chat.chatName, chat._id, chat.lastText]);
+                    flist.push([chat.chatName, chat.lastTextTime, chat._id, chat.lastText]);
                 }
             }
             glist.sort();
@@ -109,9 +109,9 @@ const Contacts = ({contactInfo, groupsList, setGroupsList, setContactInfo, frien
             setGroupsList(glist)
             setFriendsList(flist);
             if (flist.length > 0) {
-                setContactInfo([flist[0][1], flist[0][2]]);
+                setContactInfo([flist[0][0], flist[0][2]]);
             } else if (glist.length > 0) {
-                setContactInfo([glist[0][1], glist[0][2]]);
+                setContactInfo([glist[0][0], glist[0][2]]);
             }
         }).catch(e => {
             console.log(e);
@@ -136,7 +136,7 @@ const Contacts = ({contactInfo, groupsList, setGroupsList, setContactInfo, frien
                     <Typography variant="h4">Friends</Typography>
                 </AccordionSummary>
                 <AccordionDetails className={classes.accordion}>
-                    <Grid className={classes.groupItemContainer}>
+                    {/* <Grid className={classes.groupItemContainer}>
                             {friendsList.map(([friendName, chatId, isNew, friendId], index) => {
                                 return (<ContactItem 
                                             key={index} 
@@ -149,7 +149,7 @@ const Contacts = ({contactInfo, groupsList, setGroupsList, setContactInfo, frien
                                             friendId={friendId}
                                         ></ContactItem>);
                             })}
-                    </Grid>
+                    </Grid> */}
                 </AccordionDetails>
             </CustomAccordion>
             <CustomAccordion>
@@ -160,14 +160,15 @@ const Contacts = ({contactInfo, groupsList, setGroupsList, setContactInfo, frien
                 </AccordionSummary>
                 <AccordionDetails className={classes.accordion}>
                     <Grid className={classes.groupItemContainer}>
-                        {groupsList.map(([groupName, groupId, isNew], index) => {
-                            return (<ContactItem 
-                                        key={index} 
-                                        index={index} 
+                        {groupsList.map(([groupName, time, groupId, content], index) => {
+                            return (<ContactItem
+                                        key={index}
                                         name={groupName} 
-                                        id={groupId} 
+                                        id={groupId}
+                                        time={time}
+                                        content={content}
                                         setContactInfo={setContactInfo}
-                                        isNew={isNew}
+                                        isNew={true}
                                         type={0}
                                     ></ContactItem>);
                         })}

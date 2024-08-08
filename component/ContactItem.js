@@ -48,10 +48,8 @@ const useStyles = makeStyles((theme) => ({
     }
   }));
 
-const ContactItem = ({name, id, setContactInfo, isNew, type, friendId, index}) => {
+const ContactItem = ({name, id, setContactInfo, isNew, type, friendId, time, content}) => {
     const classes = useStyles();
-    const [time, setTime] = useState("");
-    const [content, setContent] = useState("");
     const [uid, setUid] = useState('');
     
     return (
@@ -59,11 +57,11 @@ const ContactItem = ({name, id, setContactInfo, isNew, type, friendId, index}) =
             className={classes.container} 
             elevation={5} 
             onClick={() => {
-                
+                setContactInfo([name, id]);
             }}>
             <div className={classes.name}>
                 <Typography variant="h4" className={classes.text}> {name} </Typography>
-                <Typography variant="h6" className={isNew ? classes.newMessage : classes.oldMessage}> {content.length > 15 ? content.substring(0, 15) + '...' : content} </Typography>
+                <Typography variant="h6" className={isNew ? classes.newMessage : classes.oldMessage}> {content.length > 25 ? content.substring(0, 25) + '...' : content} </Typography>
             </div>
             <Typography variant="h6" className={classes.time}> {time.substring(11, 16)} </Typography>
         </Paper>

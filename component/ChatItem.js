@@ -85,7 +85,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const ChatItem = ({time, type, self, content, showName, showTime}) => {
+const ChatItem = ({time, sender, senderName, self, content, showName, showTime}) => {
     const classes = useStyles();
     const [name, setName] = useState("");
     const nameRef = useRef();
@@ -93,25 +93,25 @@ const ChatItem = ({time, type, self, content, showName, showTime}) => {
     
     return (
         <div>
-            { showTime ? <div className={classes.time}>{time.substring(0, 16)}</div> : <div></div>}
-            {(showName || showTime) && type !== 1 ? <div className={ self ? classes.selfName : classes.otherName}>
+            { showTime ? <div className={classes.time}>{time.substring(0, 10) + " " + time.substring(11, 16)}</div> : <div></div>}
+            {(showName || showTime) && sender !== 1 ? <div className={ self ? classes.selfName : classes.otherName}>
                                 <Typography 
                                             variant="button" 
                                             display="block"
                                             className={classes.username}
                                             onClick={() => {
-                                                localStorage.setItem("uidContext", type);
+                                                localStorage.setItem("uidContext", sender);
                                                 navigate('/profile');
                                             }}            
                                 >
-                                    {name}
+                                    {senderName}
                                 </Typography>
                             </div> 
                             : 
                             <div></div>}
-            <div className={ type === 1 ? classes.root : (self ? classes.selfMessage : classes.otherMessage) }>
+            <div className={ sender === 1 ? classes.root : (self ? classes.selfMessage : classes.otherMessage) }>
                 
-                <div className={self ? classes.selfBubble : (type === 1 ? classes.notification : classes.otherBubble)}>{content}</div>
+                <div className={self ? classes.selfBubble : (sender === 1 ? classes.notification : classes.otherBubble)}>{content}</div>
             </div>
         </div>
     );
